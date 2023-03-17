@@ -8463,7 +8463,6 @@ function activate(context) {
         (0, statusBarUtils_1.default)(statusBarItem, 'loading');
         if (activeTextEditor) {
             if ((0, helpers_1.validateFileType)(activeTextEditor)) {
-                (0, messages_1.generateMessage)("Writing the unit tests for  you! Please be patient.", 'info');
                 if (!(0, helpers_1.isTestFileExist)((0, helpers_1.generateTestFileName)(activeTextEditor))) {
                     const fileContent = (0, helpers_1.getFileContent)(activeTextEditor);
                     const prompt = "Using Jest and Enzyme, generate comprehensive unit tests for a React component. Test that all elements are rendering, function calls are accurately called, and events are appropriately handled. Test for the number of function calls and ensure that all possible scenarios are covered. Do not include snapshot testing and do not assume the presence of any elements that are not visible in the code. Please provide only the relevant test code as a response, without any natural language output or comments";

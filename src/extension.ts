@@ -19,7 +19,6 @@ export function activate(context: vscode.ExtensionContext) {
     updateStatusBar(statusBarItem, 'loading');
     if (activeTextEditor) {
       if (validateFileType(activeTextEditor)) {
-        generateMessage("Writing the unit tests for  you! Please be patient.", 'info');
         if (!isTestFileExist(generateTestFileName(activeTextEditor))) {
           const fileContent = getFileContent(activeTextEditor);
           
