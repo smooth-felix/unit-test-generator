@@ -44,27 +44,59 @@ const isTestFileExist = (filePath) => {
     return fs.existsSync(filePath);
 };
 exports.isTestFileExist = isTestFileExist;
+async function updateFileWithChunks(inputString, editor) {
+    // Use a regular expression that preserves line breaks when splitting the input string into lines
+    let lines = inputString.split(/\r\n|\n|\r/);
+    let currentIndex = 0;
+    const updateFile = async () => {
+        if (!editor.document.isClosed && lines && currentIndex < lines.length) {
+            const line = lines[currentIndex] + "\n"; // add a line break at the end of each line
+            const startPosition = new vscode.Position(currentIndex, 0);
+            const endPosition = new vscode.Position(currentIndex, line.length);
+            const range = new vscode.Range(startPosition, endPosition);
+            await editor.edit(editBuilder => {
+                editBuilder.replace(range, line);
+            });
+            currentIndex++;
+            setTimeout(updateFile, 200); // updates every second
+        }
+        else {
+            try {
+                await editor.document.save(); // save the document after all chunks are written
+                console.log('File saved successfully.');
+            }
+            catch (error) {
+                console.error('Error saving file:', error);
+            }
+        }
+    };
+    await updateFile();
+}
+const openFile = async (filePath) => {
+    try {
+        const document = await vscode.workspace.openTextDocument(filePath);
+        const editor = await vscode.window.showTextDocument(document);
+        return editor;
+    }
+    catch (error) {
+        console.error(error);
+    }
+};
 // Create the .test file
-const createTheTestFile = (activeTextEditor, content) => {
+const createTheTestFile = async (activeTextEditor, content) => {
     const testFilePath = (0, exports.generateTestFileName)(activeTextEditor);
     if (!(0, exports.isTestFileExist)(testFilePath)) {
-        fs.writeFileSync(testFilePath, content);
-        openFile(testFilePath);
+        fs.writeFileSync(testFilePath, "");
+        const editor = await openFile(testFilePath);
+        if (editor) {
+            updateFileWithChunks(content, editor);
+        }
     }
     else {
         (0, messages_1.generateMessage)("Test file already exists!", 'error');
     }
 };
 exports.createTheTestFile = createTheTestFile;
-const openFile = async (filePath) => {
-    try {
-        const document = await vscode.workspace.openTextDocument(filePath);
-        await vscode.window.showTextDocument(document);
-    }
-    catch (error) {
-        console.error(error);
-    }
-};
 const validateFileType = (activeTextEditor) => {
     const filePath = activeTextEditor.document.uri.fsPath;
     const regex = /^(?!.*test\.)(.+)\.(js|jsx|ts|tsx)$/;
@@ -116,7 +148,7 @@ module.exports = require("path");
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const { Configuration, OpenAIApi } = __webpack_require__(7);
 const configuration = new Configuration({
-    apiKey: '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',
+    apiKey: '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',
 });
 const openai = new OpenAIApi(configuration);
 function cleanUnitTestCode(code) {

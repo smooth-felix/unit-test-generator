@@ -29,23 +29,57 @@ export const isTestFileExist = (filePath: string) : boolean => {
   return fs.existsSync(filePath);
 };
 
-// Create the .test file
-export const createTheTestFile = (activeTextEditor : vscode.TextEditor, content: string): void => {
-  const testFilePath = generateTestFileName(activeTextEditor);
-  if (!isTestFileExist(testFilePath)) {
-    fs.writeFileSync(testFilePath, content);
-    openFile(testFilePath);
-  } else {
-    generateMessage("Test file already exists!", 'error');
-  }
-};
+async function updateFileWithChunks(inputString: string, editor: vscode.TextEditor) {
+  // Use a regular expression that preserves line breaks when splitting the input string into lines
+  let lines = inputString.split(/\r\n|\n|\r/);
+  let currentIndex = 0;
+
+  const updateFile = async () => {
+    if (!editor.document.isClosed && lines && currentIndex < lines.length) {
+      const line = lines[currentIndex] + "\n"; // add a line break at the end of each line
+      const startPosition = new vscode.Position(currentIndex, 0);
+      const endPosition = new vscode.Position(currentIndex, line.length);
+      const range = new vscode.Range(startPosition, endPosition);
+      await editor.edit(editBuilder => {
+        editBuilder.replace(range, line);
+      });
+
+      currentIndex++;
+      setTimeout(updateFile, 200); // updates every second
+    } else {
+      try {
+        await editor.document.save(); // save the document after all chunks are written
+        console.log('File saved successfully.');
+      } catch (error) {
+        console.error('Error saving file:', error);
+      }
+    }
+  };
+
+  await updateFile();
+}
 
 const openFile = async (filePath: string) => {
   try {
     const document = await vscode.workspace.openTextDocument(filePath);
-    await vscode.window.showTextDocument(document);
+    const editor = await vscode.window.showTextDocument(document);
+    return editor;
   } catch (error) {
     console.error(error);
+  }
+};
+
+// Create the .test file
+export const createTheTestFile = async (activeTextEditor : vscode.TextEditor, content: string) => {
+  const testFilePath = generateTestFileName(activeTextEditor);
+  if (!isTestFileExist(testFilePath)) {
+    fs.writeFileSync(testFilePath, "");
+    const editor = await openFile(testFilePath);
+    if(editor) {
+      updateFileWithChunks(content, editor);
+    }
+  } else {
+    generateMessage("Test file already exists!", 'error');
   }
 };
 
