@@ -19,11 +19,12 @@ const vscode = __webpack_require__(1);
 const messages_1 = __webpack_require__(3);
 const fs = __webpack_require__(4);
 const path = __webpack_require__(5);
-const vsCodeRoot = vscode.workspace.rootPath;
-const testFolder = vsCodeRoot + '/__tests__';
+// const vsCodeRoot = vscode.workspace.rootPath;
 // Check whether tests folder already exists
 // If the folder does not exists create it
-const createTestFolder = () => {
+const createTestFolder = (activeTextEditor) => {
+    const filePath = activeTextEditor.document.uri.fsPath;
+    const testFolder = path.dirname(filePath) + '/__test__';
     if (!fs.existsSync(testFolder)) {
         fs.mkdirSync(testFolder);
     }
@@ -37,6 +38,7 @@ const generateTestFileName = (activeTextEditor) => {
     const filePath = activeTextEditor.document.uri.fsPath;
     const fileExtension = path.extname(filePath);
     const fileBaseName = path.basename(filePath, fileExtension);
+    const testFolder = path.dirname(filePath) + '/__test__';
     return `${testFolder}/${fileBaseName}.test${fileExtension}`;
 };
 exports.generateTestFileName = generateTestFileName;
@@ -63,7 +65,6 @@ async function updateFileWithChunks(inputString, editor) {
         else {
             try {
                 await editor.document.save(); // save the document after all chunks are written
-                console.log('File saved successfully.');
             }
             catch (error) {
                 console.error('Error saving file:', error);
@@ -148,7 +149,7 @@ module.exports = require("path");
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const { Configuration, OpenAIApi } = __webpack_require__(7);
 const configuration = new Configuration({
-    apiKey: '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',
+    apiKey: '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',
 });
 const openai = new OpenAIApi(configuration);
 function cleanUnitTestCode(code) {
@@ -8385,6 +8386,31 @@ module.exports = function(dst, src) {
 };
 
 
+/***/ }),
+/* 79 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const vscode = __webpack_require__(1);
+const updateStatusBar = (statusBarItem, type = 'default') => {
+    if (type === 'default') {
+        statusBarItem.text = "$(beaker) Generate Tests";
+        statusBarItem.tooltip = "Generate Unit Tests for the current file";
+        statusBarItem.command = "unitTestGeneratorReact.generateUnitTests";
+        statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+    }
+    else {
+        statusBarItem.text = "$(sync~spin) Generating Tests";
+        statusBarItem.tooltip = "Generating Unit Tests";
+        statusBarItem.command = undefined;
+        statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+    }
+};
+exports["default"] = updateStatusBar;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -8425,18 +8451,16 @@ const vscode = __webpack_require__(1);
 const helpers_1 = __webpack_require__(2);
 const messages_1 = __webpack_require__(3);
 const requestHandler_1 = __webpack_require__(6);
+const statusBarUtils_1 = __webpack_require__(79);
 function activate(context) {
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
-    statusBarItem.text = "$(beaker) Generate Tests";
-    statusBarItem.tooltip = "Generate Unit Tests for the current file";
-    statusBarItem.command = "unitTestGeneratorReact.generateUnitTests";
-    statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+    (0, statusBarUtils_1.default)(statusBarItem);
     statusBarItem.show();
     // Add the button to the status bar
     context.subscriptions.push(statusBarItem);
     const disposable = vscode.commands.registerCommand('unitTestGeneratorReact.generateUnitTests', async () => {
         const activeTextEditor = vscode.window.activeTextEditor;
-        statusBarItem.hide();
+        (0, statusBarUtils_1.default)(statusBarItem, 'loading');
         if (activeTextEditor) {
             if ((0, helpers_1.validateFileType)(activeTextEditor)) {
                 (0, messages_1.generateMessage)("Writing the unit tests for  you! Please be patient.", 'info');
@@ -8445,7 +8469,7 @@ function activate(context) {
                     const prompt = "Using Jest and Enzyme, generate comprehensive unit tests for a React component. Test that all elements are rendering, function calls are accurately called, and events are appropriately handled. Test for the number of function calls and ensure that all possible scenarios are covered. Do not include snapshot testing and do not assume the presence of any elements that are not visible in the code. Please provide only the relevant test code as a response, without any natural language output or comments";
                     const results = await (0, requestHandler_1.default)(fileContent + prompt);
                     if (results) {
-                        (0, helpers_1.createTestFolder)();
+                        (0, helpers_1.createTestFolder)(activeTextEditor);
                         (0, helpers_1.createTheTestFile)(activeTextEditor, results);
                     }
                 }
@@ -8457,7 +8481,7 @@ function activate(context) {
                 (0, messages_1.generateMessage)("Cannot generate Unit tests for this file", 'error');
             }
         }
-        statusBarItem.show();
+        (0, statusBarUtils_1.default)(statusBarItem);
     });
     context.subscriptions.push(disposable);
 }

@@ -3,12 +3,13 @@ import { generateMessage } from './messages';
 const fs = require('fs');
 const path = require('path');
 
-const vsCodeRoot = vscode.workspace.rootPath;
-const testFolder = vsCodeRoot + '/__tests__';
+// const vsCodeRoot = vscode.workspace.rootPath;
 
 // Check whether tests folder already exists
 // If the folder does not exists create it
-export const createTestFolder = (): void => {
+export const createTestFolder = (activeTextEditor : vscode.TextEditor): void => {
+  const filePath = activeTextEditor.document.uri.fsPath;
+  const testFolder = path.dirname(filePath) + '/__test__';
   if (!fs.existsSync(testFolder)) {
     fs.mkdirSync(testFolder);
   }
@@ -22,6 +23,7 @@ export const generateTestFileName = (activeTextEditor : vscode.TextEditor) : str
   const filePath = activeTextEditor.document.uri.fsPath;
   const fileExtension = path.extname(filePath);
   const fileBaseName = path.basename(filePath, fileExtension);
+  const testFolder = path.dirname(filePath) + '/__test__';
   return `${testFolder}/${fileBaseName}.test${fileExtension}`;
 };
 
@@ -49,7 +51,6 @@ async function updateFileWithChunks(inputString: string, editor: vscode.TextEdit
     } else {
       try {
         await editor.document.save(); // save the document after all chunks are written
-        console.log('File saved successfully.');
       } catch (error) {
         console.error('Error saving file:', error);
       }
